@@ -66,12 +66,12 @@ func (c *Client) Read() {
 		}
 		log.Printf("client [%s] receive message: %s", c.clientId, string(message))
 		// 处理拿到的消息
-		// err = handleMessage(c, message)
+		err = handleMessage(c, message)
 		if err != nil {
 			// log.Printf("client [%s] writemessage err: %s", c.clientId, err)
 			log.Printf("client [%s] writemessage err: %s", c.clientId, err)
 		}
-		c.Message <- message
+		// c.Message <- message
 	}
 }
 
