@@ -23,5 +23,5 @@ func InitRoutes() {
 	{
 		wsGroup.GET("/:channel", ws.WebsocketManager.WsClient)
 	}
-	router.Run(":8090")
+	router.Run(":8999")
 }

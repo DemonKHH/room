@@ -300,18 +300,13 @@ func (manager *Manager) WsClient(ctx *gin.Context) {
 // 处理收到的数据
 func handleMessage(c *Client, message []byte) error {
 	log.Printf("handleMessage %v", string(message))
-	// var msg WsMsg
-	// err := json.Unmarshal(message, &msg)
-	// if err != nil {
-	// 	log.Printf("handleMessage Unmarshal error: %v", err)
-	// 	return err
-	// }
-	// logger.Debuglog.Printf("handleMessage Type %v", msg.Type)
-	// switch msg.Type {
-	// default:
-	// 	WebsocketManager.SendGroup(c.Group, message)
-	// }
-	WebsocketManager.SendGroup(c.Group, message)
+	if groupMap, ok := WebsocketManager.Group[c.Group]; ok {
+		for _, conn := range groupMap {
+			if c.clientId != conn.clientId {
+				conn.Message <- message
+			}
+		}
+	}
 	return nil
 }
 

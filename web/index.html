@@ -6,41 +6,71 @@
     <title>菜鸟教程(runoob.com)</title>
 
     <script type="text/javascript">
-        function WebSocketTest() {
-            if ("WebSocket" in window) {
+        // 打开一个 web socket
+        var ws = new WebSocket("ws://192.168.1.102:8090/room/123");
 
-                // 打开一个 web socket
-                var ws = new WebSocket("ws://192.168.1.102:8090/room/123");
-
-                ws.onopen = function () {
-                    // Web Socket 已连接上，使用 send() 方法发送数据
-                    var data = {
-                        mediaUrl: 'mediaUrl',
-                        mediaStatus: 'mediaStatus',
-                        mediaDuration: 'mediaDuration',
-                        date: new Date(),
-                    }
-                    ws.send(JSON.stringify(data));
-                    console.log("数据发送中...");
-                };
-
-                ws.onmessage = function (evt) {
-                    var received_msg = evt.data;
-                    console.log("数据已接收...", received_msg);
-                };
-
-                ws.onclose = function () {
-                    // 关闭 websocket
-                    console.log("连接已关闭...");
-                };
+        ws.onopen = function () {
+            // Web Socket 已连接上，使用 send() 方法发送数据
+            var data = {
+                type: "test"
             }
+            ws.send(JSON.stringify(data));
+            console.log("数据发送中...");
+        };
 
-            else {
-                // 浏览器不支持 WebSocket
-                alert("您的浏览器不支持 WebSocket!");
-            }
+        ws.onmessage = function (evt) {
+            var received_msg = evt.data;
+            console.log("数据已接收...", received_msg);
+        };
+
+        ws.onclose = function () {
+            // 关闭 websocket
+            console.log("连接已关闭...");
+        };
+
+        function play() {
+            ws.send(JSON.stringify({
+                "type": "play",
+                "mediaInfo": {
+                    "url": "http://vfx.mtime.cn/Video/2019/02/04/mp4/190204084208765161.mp4",
+                    "status": "play",
+                    "position": "0:00:08.326000"
+                }
+            }))
         }
-        WebSocketTest();
+
+        function pause() {
+            ws.send(JSON.stringify({
+                "type": "pause",
+                "mediaInfo": {
+                    "url": "http://vfx.mtime.cn/Video/2019/02/04/mp4/190204084208765161.mp4",
+                    "status": "pause",
+                    "position": "01:10:08.326000"
+                }
+            }))
+        }
+
+        function reload() {
+            ws.send(JSON.stringify({
+                "type": "reload",
+                "mediaInfo": {
+                    "url": "http://vfx.mtime.cn/Video/2019/02/04/mp4/190204084208765161.mp4",
+                    "status": "reload",
+                    "position": "0:00:08.326000"
+                }
+            }))
+        }
+
+        function seekTo() {
+            ws.send(JSON.stringify({
+                "type": "seekTo",
+                "mediaInfo": {
+                    "url": "http://vfx.mtime.cn/Video/2019/02/04/mp4/190204084208765161.mp4",
+                    "status": "seekTo",
+                    "position": "01:10:08.326000"
+                }
+            }))
+        }
     </script>
 
 </head>
@@ -48,7 +78,10 @@
 <body>
 
     <div id="sse">
-        <a href="javascript:WebSocketTest()">运行 WebSocket</a>
+        <button onclick="play()">play</button>
+        <button onclick="pause()">pause</button>
+        <button onclick="seekTo()">seekTo</button>
+        <button onclick="reload()">reload</button>
     </div>
 
 </body>
