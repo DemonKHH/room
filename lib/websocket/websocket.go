@@ -106,6 +106,12 @@ func (manager *Manager) Start() {
 		case client := <-manager.Register:
 			log.Printf("client [%s] connect", client.clientId)
 			log.Printf("register client [%s] to group [%s]", client.clientId, client.Group)
+			var enterMsg = struct {
+				Type     string `json:"type"`
+				ClientId string `json:"clientId"`
+			}{Type: "enter", ClientId: client.clientId}
+			enterMsgBytes, _ := json.Marshal(enterMsg)
+			manager.SendGroup(client.Group, enterMsgBytes)
 			manager.Lock.Lock()
 			if manager.Group[client.Group] == nil {
 				manager.Group[client.Group] = make(map[string]*Client)
@@ -123,8 +129,8 @@ func (manager *Manager) Start() {
 				ClientId string `json:"clientId"`
 			}{Type: "leave", ClientId: client.clientId}
 			logger.Debuglog.Printf("send leave message to group %s", leaveMsg)
-			leavMsgBytes, _ := json.Marshal(leaveMsg)
-			manager.SendGroup(client.Group, leavMsgBytes)
+			leaveMsgBytes, _ := json.Marshal(leaveMsg)
+			manager.SendGroup(client.Group, leaveMsgBytes)
 			manager.Lock.Lock()
 			if _, ok := manager.Group[client.Group]; ok {
 				if _, ok := manager.Group[client.Group][client.clientId]; ok {
