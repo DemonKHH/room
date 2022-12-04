@@ -106,12 +106,6 @@ func (manager *Manager) Start() {
 		case client := <-manager.Register:
 			log.Printf("client [%s] connect", client.clientId)
 			log.Printf("register client [%s] to group [%s]", client.clientId, client.Group)
-			var enterMsg = struct {
-				Type     string `json:"type"`
-				ClientId string `json:"clientId"`
-			}{Type: "enter", ClientId: client.clientId}
-			enterMsgBytes, _ := json.Marshal(enterMsg)
-			manager.SendGroup(client.Group, enterMsgBytes)
 			manager.Lock.Lock()
 			if manager.Group[client.Group] == nil {
 				manager.Group[client.Group] = make(map[string]*Client)
@@ -120,17 +114,22 @@ func (manager *Manager) Start() {
 			manager.Group[client.Group][client.clientId] = client
 			manager.clientCount += 1
 			manager.Lock.Unlock()
+			var enterMsg = struct {
+				Type       string `json:"type"`
+				ClientId   string `json:"clientId"`
+				GroupCount int    `json:"groupCount"`
+			}{Type: "enter", ClientId: client.clientId, GroupCount: len(manager.Group[client.Group])}
+			enterMsgBytes, _ := json.Marshal(enterMsg)
+			// manager.SendGroup(client.Group, enterMsgBytes)
+			for _, conn := range manager.Group[client.Group] {
+				if conn.clientId != client.clientId {
+					conn.Message <- enterMsgBytes
+				}
+			}
 			log.Printf("client count: %d", WebsocketManager.clientCount)
 		// 注销
 		case client := <-manager.UnRegister:
 			log.Printf("unregister client [%s] from group [%s]", client.clientId, client.Group)
-			var leaveMsg = struct {
-				Type     string `json:"type"`
-				ClientId string `json:"clientId"`
-			}{Type: "leave", ClientId: client.clientId}
-			logger.Debuglog.Printf("send leave message to group %s", leaveMsg)
-			leaveMsgBytes, _ := json.Marshal(leaveMsg)
-			manager.SendGroup(client.Group, leaveMsgBytes)
 			manager.Lock.Lock()
 			if _, ok := manager.Group[client.Group]; ok {
 				if _, ok := manager.Group[client.Group][client.clientId]; ok {
@@ -145,7 +144,19 @@ func (manager *Manager) Start() {
 				}
 			}
 			manager.Lock.Unlock()
+			var enterMsg = struct {
+				Type       string `json:"type"`
+				ClientId   string `json:"clientId"`
+				GroupCount int    `json:"groupCount"`
+			}{Type: "leave", ClientId: client.clientId, GroupCount: len(manager.Group[client.Group])}
+			enterMsgBytes, _ := json.Marshal(enterMsg)
+			// manager.SendGroup(client.Group, enterMsgBytes)
 			log.Printf("client count: %d", WebsocketManager.clientCount)
+			for _, conn := range manager.Group[client.Group] {
+				if conn.clientId != client.clientId {
+					conn.Message <- enterMsgBytes
+				}
+			}
 			// 发送广播数据到某个组的 channel 变量 Send 中
 			//case data := <-manager.boardCast:
 			//	if groupMap, ok := manager.wsGroup[data.GroupId]; ok {
