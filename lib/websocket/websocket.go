@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"room/logger"
+	serviceRoom "room/service/room"
 	"sync"
 	"time"
 
@@ -120,12 +121,13 @@ func (manager *Manager) Start() {
 				GroupCount int    `json:"groupCount"`
 			}{Type: "enter", ClientId: client.clientId, GroupCount: len(manager.Group[client.Group])}
 			enterMsgBytes, _ := json.Marshal(enterMsg)
+			// 加入房间
+			serviceRoom.AddRoom(client.Group, client.clientId)
 			// manager.SendGroup(client.Group, enterMsgBytes)
-			for _, conn := range manager.Group[client.Group] {
-				if conn.clientId != client.clientId {
-					conn.Message <- enterMsgBytes
-				}
-			}
+			// for _, conn := range manager.Group[client.Group] {
+			// 	conn.Message <- enterMsgBytes
+			// }
+			manager.SendGroup(client.Group, enterMsgBytes)
 			log.Printf("client count: %d", WebsocketManager.clientCount)
 		// 注销
 		case client := <-manager.UnRegister:
@@ -144,19 +146,26 @@ func (manager *Manager) Start() {
 				}
 			}
 			manager.Lock.Unlock()
-			var enterMsg = struct {
+			var leaveMsg = struct {
 				Type       string `json:"type"`
 				ClientId   string `json:"clientId"`
 				GroupCount int    `json:"groupCount"`
 			}{Type: "leave", ClientId: client.clientId, GroupCount: len(manager.Group[client.Group])}
-			enterMsgBytes, _ := json.Marshal(enterMsg)
-			// manager.SendGroup(client.Group, enterMsgBytes)
+			leaveMsgBytes, _ := json.Marshal(leaveMsg)
+			// manager.SendGroup(client.Group, leaveMsgBytes)
+			manager.SendGroup(client.Group, leaveMsgBytes)
 			log.Printf("client count: %d", WebsocketManager.clientCount)
-			for _, conn := range manager.Group[client.Group] {
-				if conn.clientId != client.clientId {
-					conn.Message <- enterMsgBytes
-				}
+			// 从房间移出用户
+			serviceRoom.LeaveRoom(client.Group, client.clientId)
+			// 房间无用户则解散房间
+			if len(manager.Group[client.Group]) == 0 {
+				serviceRoom.DeleteRoom(client.Group)
 			}
+			// for _, conn := range manager.Group[client.Group] {
+			// 	if conn.clientId != client.clientId {
+			// 		conn.Message <- leaveMsgBytes
+			// 	}
+			// }
 			// 发送广播数据到某个组的 channel 变量 Send 中
 			//case data := <-manager.boardCast:
 			//	if groupMap, ok := manager.wsGroup[data.GroupId]; ok {

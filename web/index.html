@@ -7,169 +7,81 @@
 
     <script type="text/javascript">
         // 打开一个 web socket
-        var ws = new WebSocket("ws://127.0.0.1:8999/room/123");
+        var ws = new WebSocket("ws://127.0.0.1:8999/room/abcd11");
+        function openWs() {
+            ws = new WebSocket("ws://127.0.0.1:8999/room/abcd11");
+            ws.onopen = function () {
+                // Web Socket 已连接上，使用 send() 方法发送数据
+                var data = {
+                    type: "test"
+                }
+                // ws.send(JSON.stringify(data));
+                // console.log("数据发送中...");
+            };
 
-        ws.onopen = function () {
-            // Web Socket 已连接上，使用 send() 方法发送数据
-            var data = {
-                type: "test"
-            }
-            // ws.send(JSON.stringify(data));
-            // console.log("数据发送中...");
-        };
+            ws.onmessage = function (evt) {
+                var received_msg = evt.data;
+                console.log("数据已接收...", JSON.parse(received_msg));
+            };
 
-        ws.onmessage = function (evt) {
-            var received_msg = evt.data;
-            console.log("数据已接收...", received_msg);
-        };
+            ws.onclose = function () {
+                // 关闭 websocket
+                console.log("连接已关闭...");
+            };
+        }
 
-        ws.onclose = function () {
-            // 关闭 websocket
-            console.log("连接已关闭...");
-        };
+
+        function closeWs() {
+            ws.close();
+        }
 
         function play() {
             ws.send(JSON.stringify({
                 "type": "play",
-                "mediaInfo": {
+                "data": {
                     "url": "http://vfx.mtime.cn/Video/2019/02/04/mp4/190204084208765161.mp4",
                     "status": "play",
                     "position": "0:00:08.326000"
-                }
+                },
+                "notice": "play is "
             }))
         }
 
         function pause() {
             ws.send(JSON.stringify({
                 "type": "pause",
-                "mediaInfo": {
+                "data": {
                     "url": "http://vfx.mtime.cn/Video/2019/02/04/mp4/190204084208765161.mp4",
                     "status": "pause",
                     "position": "01:10:08.326000"
-                }
+                },
+                "notice": "pause is "
             }))
         }
 
         function reload() {
             ws.send(JSON.stringify({
                 "type": "reload",
-                "mediaInfo": {
-                    "url": "http://vfx.mtime.cn/Video/2019/02/04/mp4/190204084208765161.mp4",
+                "data": {
+                    "url": "https://vip.lz-cdn10.com/20220721/2066_dad6abd0/index.m3u8",
                     "status": "reload",
                     "position": "0:00:08.326000"
-                }
+                },
+                "notice": "reload is "
             }))
         }
 
         function seekTo() {
             ws.send(JSON.stringify({
                 "type": "seekTo",
-                "mediaInfo": {
+                "data": {
                     "url": "http://vfx.mtime.cn/Video/2019/02/04/mp4/190204084208765161.mp4",
                     "status": "seekTo",
-                    "position": "01:10:08.326000"
-                }
+                    "position": "0:00:08.326000"
+                },
+                "notice": "seekto is "
             }))
         }
-    </script>
-    <script>
-        var demo = {
-            "code": 1,
-            "msg": "数据列表",
-            "page": 1,
-            "pagecount": 1,
-            "limit": "20",
-            "total": 1,
-            "list": [
-                {
-                    "vod_id": 26639,
-                    "type_id": 32,
-                    "type_id_1": 24,
-                    "group_id": 0,
-                    "vod_name": "哆啦A梦新番",
-                    "vod_sub": "新哆啦A梦\/机器猫\/小叮当\/哆啦A梦水田版",
-                    "vod_en": "duolaAmeng",
-                    "vod_status": 1,
-                    "vod_letter": "D",
-                    "vod_color": "",
-                    "vod_tag": "哆啦A梦ドラえもん,",
-                    "vod_class": "",
-                    "vod_pic": "https:\/\/pic.huishij.com\/upload\/vod\/20220410-1\/29a84a409bbc1f0eaddf8f4f89d34565.jpg",
-                    "vod_pic_thumb": "",
-                    "vod_pic_slide": "",
-                    "vod_pic_screenshot": "",
-                    "vod_actor": "水田山葵,大原惠美,嘉数由美,关智一,木村昴,三石琴乃,松本保典,堀秀行,羽鸟靖子,加藤精三,村松康雄,高木涉,荻野志保子,宝龟克寿,松井菜樱子,藤本千秋,龟井芳子,松本幸,折笠爱,田原阿尔诺,千叶一伸,高山南,田中秀幸,山崎巧,真山亚子,竹内都子,山崎雅美,辻亲八,高户靖广,龙田直树,池泽春菜,真殿光昭",
-                    "vod_director": "楠叶宏三,渡边步,善聪一郎,八锹新之介,大杉宜弘,宫本幸裕,高桥涉,高桥敦史,寺本幸代,今井一晓,小仓宏文,矢岛哲生,宫下新平,高桥谦仁,佐藤真人,村野佑太,佐佐木纯人,江岛泰男,铃木卓夫,茉田哲明,秦义人,古贺一臣,五月女有作,金子祥之,钉宫洋,松村树里亚,吉田光春,铃木孝聪,松园公,筱崎康行,矢花馨,三上喜子,三家本泰美,腰繁男,佐土原武之,根岸宏树,饭村正之,安藤敏彦,藤仓拓也,古屋胜悟,福本洁,大关雅幸,岩田义彦,山冈实,大塚隆宽,西田健一",
-                    "vod_writer": "藤子·F·不二雄,水野宗德,清水东,大野木宽,大野敏哉,高桥奈津子,岛田满,早川正,佐藤大,小林英造,高桥悠也",
-                    "vod_behind": "",
-                    "vod_blurb": "1969年，著名日本漫画家藤子·F·不二雄（藤本弘）创作出圆脑袋、蓝身体、拥有神奇道具的百宝袋的哆啦A梦，在此之后，这个可爱的角色迅速窜红，享誉海内外，成为最成功的漫画角色之一。随着1979年同名",
-                    "vod_remarks": "更新至723集",
-                    "vod_pubdate": "2005-04-15(日本)",
-                    "vod_total": 0,
-                    "vod_serial": "723",
-                    "vod_tv": "",
-                    "vod_weekday": "",
-                    "vod_area": "日本",
-                    "vod_lang": "日语",
-                    "vod_year": "2005",
-                    "vod_version": "",
-                    "vod_state": "",
-                    "vod_author": "豆瓣",
-                    "vod_jumpurl": "",
-                    "vod_tpl": "",
-                    "vod_tpl_play": "",
-                    "vod_tpl_down": "",
-                    "vod_isend": 0,
-                    "vod_lock": 0,
-                    "vod_level": 0,
-                    "vod_copyright": 0,
-                    "vod_points": 0,
-                    "vod_points_play": 0,
-                    "vod_points_down": 0,
-                    "vod_hits": 0,
-                    "vod_hits_day": 0,
-                    "vod_hits_week": 0,
-                    "vod_hits_month": 0,
-                    "vod_duration": "24分钟",
-                    "vod_up": 0,
-                    "vod_down": 0,
-                    "vod_score": "9.6",
-                    "vod_score_all": 10,
-                    "vod_score_num": 15732,
-                    "vod_time": "2022-09-1109:21:36",
-                    "vod_time_add": 1649553860,
-                    "vod_time_hits": 0,
-                    "vod_time_make": 0,
-                    "vod_trysee": 0,
-                    "vod_douban_id": 3538051,
-                    "vod_douban_score": "9.6",
-                    "vod_reurl": "",
-                    "vod_rel_vod": "",
-                    "vod_rel_art": "",
-                    "vod_pwd": "",
-                    "vod_pwd_url": "",
-                    "vod_pwd_play": "",
-                    "vod_pwd_play_url": "",
-                    "vod_pwd_down": "",
-                    "vod_pwd_down_url": "",
-                    "vod_content": "<p>1969年，著名日本漫画家藤子·F·不二雄（藤本弘）创作出圆脑袋、蓝身体、拥有神奇道具的百宝袋的哆啦A梦，在此之后，这个可爱的角色迅速窜红，享誉海内外，成为最成功的漫画角色之一。随着1979年同名动画开播，哆啦A梦更走入千家万户，带给所有的拥趸无数甜蜜美好的回忆。即使藤本弘老师去世后，哆啦A梦也并未停止他前进的脚步，他和大雄、静香、小夫、胖虎等好友继续引领着大朋友、小朋友们，开始一次又一次的全新冒险。\r\n                  \r\n                2005年，TV动画版《哆啦A梦》第二作在中止一个月左右后重返荧屏，而与后期剧场版相呼应的全新且更贴近原著的画风则仿佛昭示着一个新时代的到来。毕竟我们最熟悉的朋友从未远去，他以更纯真的面孔回到我们的身边！<\/p>",
-                    "vod_play_from": "tkyun$$$tkm3u8",
-                    "vod_play_server": "no$$$no",
-                    "vod_play_note": "$$$",
-                    "vod_play_url": "第701-1集$https:\/\/v3.dious.cc\/share\/rul6HgudWALVOxVB#第701-2集$https:\/\/v3.dious.cc\/share\/sQcAkKF5rroKlBL7#第702集$https:\/\/v6.dious.cc\/share\/oQMyCf0OfAw5VWri#第703集$https:\/\/v6.dious.cc\/share\/DvAlSkJ6Brq070i1#第704集$https:\/\/v6.dious.cc\/share\/kKsieezouw7Khm9H#第705集$https:\/\/v6.dious.cc\/share\/oUPn0MZOtCpwtmbO#第706集$https:\/\/v6.dious.cc\/share\/wphDAVsj3rMReR5H#第707集$https:\/\/v6.dious.cc\/share\/DYNzUDDlpEy27t0R#第707集$https:\/\/v6.dious.cc\/share\/5vBLVCxAEvtoyMzY#第708集$https:\/\/v6.dious.cc\/share\/7D9VtjUpsx625OnH#第709集$https:\/\/v7.dious.cc\/share\/Be9XuLNxzn6hfhdJ#第710集$https:\/\/v7.dious.cc\/share\/UivbhaGGc2yYFmuI#第711集$https:\/\/v7.dious.cc\/share\/JFyYr33lkaJ4Gpje#第712集$https:\/\/v7.dious.cc\/share\/R8J9NItviGH3m4Wz#第713集$https:\/\/v7.dious.cc\/share\/AipoRMQ5brH3uFjE#第714集$https:\/\/v7.dious.cc\/share\/Z4A3zWlYu0CFCisB#第715集$https:\/\/v7.dious.cc\/share\/VGWpkWrq0YA9FWHC#第716集$https:\/\/v7.dious.cc\/share\/SqTZ2P3CIPzTR6kW#第717集$https:\/\/v7.dious.cc\/share\/pQ9Gn1EtxBL6o9Zy#第718集$https:\/\/v7.dious.cc\/share\/j8xuzoiXzGvMxT28#第719集$https:\/\/v7.dious.cc\/share\/TpaLkgHPqESHmUKp#第720集$https:\/\/v7.dious.cc\/share\/RNpy8v4MLmBa4Fpq#第721集$https:\/\/v7.dious.cc\/share\/neHW8NUfFwVGVGUu#第722-1集$https:\/\/v7.dious.cc\/share\/r2BGr5itahPjqktp#第722-2集https:\/\/v7.dious.cc\/share\/PeOScFsV6n4JZkKp#第723集$https:\/\/v7.dious.cc\/share\/Om7nu3EbAeGY2pv7$$$第701-1集$https:\/\/v3.dious.cc\/20220410\/YaY0jXNO\/index.m3u8#第701-2集$https:\/\/v3.dious.cc\/20220410\/nHr8enAH\/index.m3u8#第702集$https:\/\/v6.dious.cc\/20220502\/4jO7n5Ju\/index.m3u8#第703集$https:\/\/v6.dious.cc\/20220502\/bs9VhJhx\/index.m3u8#第704集$https:\/\/v6.dious.cc\/20220502\/LUWubHwO\/index.m3u8#第705集$https:\/\/v6.dious.cc\/20220515\/MhcENzLq\/index.m3u8#第706集$https:\/\/v6.dious.cc\/20220515\/HZqQFROO\/index.m3u8#第707集$https:\/\/v6.dious.cc\/20220521\/6Y63ltdh\/index.m3u8#第707集$https:\/\/v6.dious.cc\/20220531\/dnh9wxyw\/index.m3u8#第708集$https:\/\/v6.dious.cc\/20220531\/rBT5xNop\/index.m3u8#第709集$https:\/\/v7.dious.cc\/20220607\/kHWrPSHD\/index.m3u8#第710集$https:\/\/v7.dious.cc\/20220613\/RrhKrNc5\/index.m3u8#第711集$https:\/\/v7.dious.cc\/20220701\/1ExwCp6K\/index.m3u8#第712集$https:\/\/v7.dious.cc\/20220701\/5fSNF8Py\/index.m3u8#第713集$https:\/\/v7.dious.cc\/20220702\/S86nDxZU\/index.m3u8#第714集$https:\/\/v7.dious.cc\/20220719\/C1stYBvc\/index.m3u8#第715集$https:\/\/v7.dious.cc\/20220719\/Z6Vh1vUW\/index.m3u8#第716集$https:\/\/v7.dious.cc\/20220725\/GZr24Nm4\/index.m3u8#第717集$https:\/\/v7.dious.cc\/20220802\/ZqCTGw6C\/index.m3u8#第718集$https:\/\/v7.dious.cc\/20220807\/rylqRHhz\/index.m3u8#第719集$https:\/\/v7.dious.cc\/20220814\/vkW8ENvE\/index.m3u8#第720集$https:\/\/v7.dious.cc\/20220827\/YlfuRfpT\/index.m3u8#第721集$https:\/\/v7.dious.cc\/20220827\/DaMPDg41\/index.m3u8#第722-1集$https:\/\/v7.dious.cc\/20220903\/yefYitHy\/index.m3u8#第722-2集$https:\/\/v7.dious.cc\/20220903\/c91MQDsr\/index.m3u8#第723集$https:\/\/v7.dious.cc\/20220910\/a1KcopuU\/index.m3u8",
-                    "vod_down_from": "",
-                    "vod_down_server": "",
-                    "vod_down_note": "",
-                    "vod_down_url": "",
-                    "vod_plot": 0,
-                    "vod_plot_name": "",
-                    "vod_plot_detail": "",
-                    "type_name": "日本动漫"
-                }
-            ]
-        }
-        console.log(demo.list[0].vod_play_url.split('\$\$\$')[1].split('#'))
-
     </script>
 </head>
 
@@ -180,6 +92,9 @@
         <button onclick="pause()">pause</button>
         <button onclick="seekTo()">seekTo</button>
         <button onclick="reload()">reload</button>
+        <br />
+        <button onclick="openWs()">openWs</button>
+        <button onclick="closeWs()">closeWs</button>
     </div>
 </body>
 

@@ -1,9 +1,8 @@
 package main
 
-import (
-	"room/router"
-)
+import "room/router"
 
 func main() {
+	// log.Print("xxx")
 	router.InitRoutes()
 }

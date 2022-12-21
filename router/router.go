@@ -3,6 +3,7 @@ package router
 import (
 	"log"
 	"net/http"
+	api "room/api/room"
 	ws "room/lib/websocket"
 	"room/middleware"
 
@@ -11,10 +12,12 @@ import (
 
 func LoadRoutes(r *gin.Engine) {
 	log.Printf("[router] load routes")
+	r.GET("/getRooms", api.GetRooms)
 }
 
 func InitRoutes() {
 	router := gin.Default()
+	LoadRoutes(router)
 	router.Use(middleware.Cors())
 	router.StaticFS("/web", http.Dir("web"))
 	go ws.WebsocketManager.Start()
