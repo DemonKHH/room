@@ -122,7 +122,7 @@ func (manager *Manager) Start() {
 			}{Type: "enter", ClientId: client.clientId, GroupCount: len(manager.Group[client.Group])}
 			enterMsgBytes, _ := json.Marshal(enterMsg)
 			// 加入房间
-			serviceRoom.AddRoom(client.Group, client.clientId)
+			serviceRoom.EnterRoom(client.Group, client.clientId)
 			// manager.SendGroup(client.Group, enterMsgBytes)
 			// for _, conn := range manager.Group[client.Group] {
 			// 	conn.Message <- enterMsgBytes

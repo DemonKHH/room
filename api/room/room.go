@@ -1,21 +1,18 @@
 package api
 
 import (
-	"encoding/json"
 	"log"
 	"net/http"
 	"room/model"
-	db "room/service/mongo"
+
+	serviceRoom "room/service/room"
 
 	"github.com/gin-gonic/gin"
-	"go.mongodb.org/mongo-driver/bson"
 )
 
 // 获取房间
 func GetRooms(context *gin.Context) {
-	var rooms []model.Room
-	client := db.GetMongoClient()
-	rltBytes, err := db.Find(client, "rooms", bson.M{})
+	rooms, err := serviceRoom.GetRooms()
 	if err != nil {
 		log.Printf("查找房间发生错误: %v", err)
 		context.JSON(http.StatusOK, model.CommonResponse{
@@ -25,11 +22,7 @@ func GetRooms(context *gin.Context) {
 		})
 		return
 	}
-	json.Unmarshal(rltBytes, &rooms)
-	log.Printf("rltBytes %v", rooms)
-	if len(rooms) == 0 {
-		rooms = make([]model.Room, 0)
-	}
+	log.Printf("rooms: %v", rooms)
 	context.JSON(http.StatusOK, model.CommonResponse{
 		Code: 0,
 		Msg:  "get successfully",
@@ -37,10 +30,56 @@ func GetRooms(context *gin.Context) {
 	})
 }
 
-// // 加入房间
-// func AddRoom(context *gin.Context) {
+func GetRoomInfoByRoomId(context *gin.Context) {
+	roomId := context.Query("roomId")
+	rooms, err := serviceRoom.GetRoomInfoByRoomId(roomId)
+	if err != nil {
+		log.Printf("查找房间发生错误: %v", err)
+		context.JSON(http.StatusOK, model.CommonResponse{
+			Code: 1,
+			Msg:  err.Error(),
+			Data: make([]model.Room, 0),
+		})
+		return
+	}
+	log.Printf("rooms: %v", rooms)
+	context.JSON(http.StatusOK, model.CommonResponse{
+		Code: 0,
+		Msg:  "get successfully",
+		Data: rooms,
+	})
+}
 
-// }
+// 进入房间
+func EnterRoom(context *gin.Context) {
+
+}
+
+// 创建房间
+func CreateRoom(context *gin.Context) {
+	var room model.Room
+	err := context.ShouldBindJSON(&room)
+	log.Printf("room body: %v", room)
+	if err != nil {
+		context.JSON(http.StatusOK, model.CommonResponse{
+			Code: 1,
+			Msg:  "请求参数错误",
+			Data: err.Error(),
+		})
+	}
+	err = serviceRoom.CreateRoom(room.RoomId, room.RoomName, room.VideoUrl)
+	if err != nil {
+		context.JSON(http.StatusOK, model.CommonResponse{
+			Code: 1,
+			Msg:  "创建房间失败",
+			Data: err.Error(),
+		})
+	}
+	context.JSON(http.StatusOK, model.CommonResponse{
+		Code: 0,
+		Msg:  "创建房间成功",
+	})
+}
 
 // // 离开房间
 // func LeaveRoom(context *gin.Context) {

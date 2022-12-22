@@ -13,6 +13,9 @@ import (
 func LoadRoutes(r *gin.Engine) {
 	log.Printf("[router] load routes")
 	r.GET("/getRooms", api.GetRooms)
+	r.GET("/getRoomInfoByRoomId", api.GetRoomInfoByRoomId)
+	r.POST("/createRoom", api.CreateRoom)
+	r.POST("/enterRoom", api.EnterRoom)
 }
 
 func InitRoutes() {
