@@ -42,10 +42,17 @@ func GetRoomInfoByRoomId(context *gin.Context) {
 		})
 		return
 	}
-	log.Printf("rooms: %v", rooms)
+	if len(rooms) == 0 {
+		context.JSON(http.StatusOK, model.CommonResponse{
+			Code: 0,
+			Msg:  "未找到此房间",
+			Data: rooms,
+		})
+		return
+	}
 	context.JSON(http.StatusOK, model.CommonResponse{
 		Code: 0,
-		Msg:  "get successfully",
+		Msg:  "成功获取房间信息",
 		Data: rooms,
 	})
 }
