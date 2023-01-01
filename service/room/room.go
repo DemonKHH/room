@@ -1,15 +1,21 @@
 package serviceRoom
 
 import (
+	"context"
 	"encoding/json"
 	"log"
-	"room/model"
-	db "room/service/mongo"
+	"time"
+	modelRoom "wmt/internal/model/room"
+	db "wmt/service/mongo"
+	serviceUser "wmt/service/user"
 
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo"
 )
 
-func GetRooms() (rooms []model.Room, err error) {
+var roomCollection *mongo.Collection = db.OpenCollection(db.GetMongoClient(), "rooms")
+
+func GetRooms() (rooms []modelRoom.Room, err error) {
 	client := db.GetMongoClient()
 	rltBytes, err := db.Find(client, "rooms", bson.M{})
 	if err != nil {
@@ -18,25 +24,16 @@ func GetRooms() (rooms []model.Room, err error) {
 	json.Unmarshal(rltBytes, &rooms)
 	log.Printf("rltBytes %v", rooms)
 	if len(rooms) == 0 {
-		rooms = make([]model.Room, 0)
+		rooms = make([]modelRoom.Room, 0)
 	}
 	return rooms, err
 }
 
-func GetRoomInfoByRoomId(roomId string) (rooms []model.Room, err error) {
-	client := db.GetMongoClient()
-	rltBytes, err := db.Find(client, "rooms", bson.M{
-		"roomid": roomId,
-	})
-	if err != nil {
-		log.Printf("查找房间发生错误: %v", err)
-	}
-	json.Unmarshal(rltBytes, &rooms)
-	log.Printf("GetRoomInfoByRoomId %v", rooms)
-	if len(rooms) == 0 {
-		rooms = make([]model.Room, 0)
-	}
-	return rooms, err
+func GetRoomInfoByRoomId(roomId string) (room modelRoom.Room, err error) {
+	var ctx, cancel = context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	err = roomCollection.FindOne(ctx, bson.M{"roomid": roomId}).Decode(&room)
+	return room, err
 }
 
 func DeleteRoom(roomId string) {
@@ -52,11 +49,11 @@ func DeleteRoom(roomId string) {
 func CreateRoom(roomId string, roomName string, videoUrl string) error {
 	var err error
 	client := db.GetMongoClient()
-	err = db.Insert(client, "rooms", model.Room{
-		RoomId:   roomId,
-		RoomName: roomName,
-		VideoUrl: videoUrl,
-		Members:  make([]model.User, 0),
+	err = db.Insert(client, "rooms", bson.M{
+		"roomid":   roomId,
+		"roomname": roomName,
+		"videourl": videoUrl,
+		"members":  []string{},
 	})
 	if err != nil {
 		print("创建房间失败 %v", err)
@@ -64,50 +61,40 @@ func CreateRoom(roomId string, roomName string, videoUrl string) error {
 	return err
 }
 
-func EnterRoom(roomId string, clientId string) {
-	var rooms = []model.Room{}
+func EnterRoom(roomId string, userId string) error {
 	client := db.GetMongoClient()
 	filter := bson.D{{Key: "roomid", Value: roomId}}
-	respBytes, err := db.Find(client, "rooms", filter)
+	user, err := serviceUser.GetUser(userId)
 	if err != nil {
-		log.Printf("leave room error: %v", err)
-		return
+		log.Printf("get user info error: %v", err)
+		return err
 	}
-	json.Unmarshal(respBytes, &rooms)
-	// if len(rooms) == 0 {
-	// 	// 没找到对应的房间,先创建房间再加入房间
-	// 	CreateRoom(roomId)
-	// }
+	_, err = GetRoomInfoByRoomId(roomId)
+	if err != nil {
+		log.Printf("get room info error: %v", err)
+		return err
+	}
 	update := bson.M{"$push": bson.M{"members": bson.M{
-		"clientId": clientId,
-		"userName": clientId + "test",
-		"avator":   "https://www.dmoe.cc/random.php",
+		"userid":   user.UserId,
+		"username": user.FirstName,
+		"avator":   user.Avator,
 	}}}
 	err = db.Update(client, "rooms", filter, update)
 	if err != nil {
 		log.Printf("error updating %v", err)
 	}
+	return err
 }
 
-func LeaveRoom(roomId string, clientId string) {
-	var rooms = []model.Room{}
+func LeaveRoom(roomId string, userId string) error {
 	client := db.GetMongoClient()
 	filter := bson.D{{Key: "roomid", Value: roomId}}
-	respBytes, err := db.Find(client, "rooms", filter)
+
+	// 移出 members 中对应的用户
+	update := bson.M{"$pull": bson.M{"members": bson.M{"userid": userId}}}
+	err := db.Update(client, "rooms", filter, update)
 	if err != nil {
-		log.Printf("leave room error: %v", err)
-		return
+		log.Printf("error updating %v", err)
 	}
-	json.Unmarshal(respBytes, &rooms)
-	if len(rooms) == 0 {
-		// 没找到对应的房间 不处理
-		return
-	} else {
-		// 移出 members 中对应的用户
-		update := bson.M{"$pull": bson.M{"members": bson.M{"clientId": clientId}}}
-		err = db.Update(client, "rooms", filter, update)
-		if err != nil {
-			log.Printf("error updating %v", err)
-		}
-	}
+	return err
 }

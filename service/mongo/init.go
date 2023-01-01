@@ -4,7 +4,10 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"os"
+	"time"
 
+	"github.com/joho/godotenv"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
@@ -12,25 +15,39 @@ import (
 var client *mongo.Client
 
 func init() {
-	var err error
-	// 设置客户端连接配置（connect=direct当数据库为集群时，可通过配置此项解决此驱动连接docker方式部署的mongodb集群由于docker方式部署的访问域名连接，而外面的网络访问不到的情况） mongodb://user:password@ip:port/database?connect=direct
-	// &replicaSet=集群名称  authSource=数据库名称  此配置也可以指定数据库
-	clientOptions := options.Client().ApplyURI("mongodb+srv://demon:ht19980706@cluster0.u2503.mongodb.net/myFirstDatabase?retryWrites=true&w=majority")
+	ConnectDB()
+}
 
-	// 连接到MongoDB
-	client, err = mongo.Connect(context.TODO(), clientOptions)
+func ConnectDB() {
+	err := godotenv.Load(".env")
+	if err != nil {
+		log.Fatal("error loading .env file")
+	}
+
+	MongoDb := os.Getenv("MONGODB_URL")
+
+	client, err = mongo.NewClient(options.Client().ApplyURI(MongoDb))
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	// 检查连接
-	err = client.Ping(context.TODO(), nil)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+
+	defer cancel()
+
+	err = client.Connect(ctx)
 	if err != nil {
+		fmt.Print("Connection failed to MongoDB")
 		log.Fatal(err)
 	}
-	fmt.Println("Connected to MongoDB!")
+
+	fmt.Print("Connected to MongoDB")
 }
 
 func GetMongoClient() *mongo.Client {
 	return client
+}
+
+func OpenCollection(client *mongo.Client, CollectionName string) *mongo.Collection {
+	return client.Database("wmt").Collection(CollectionName)
 }

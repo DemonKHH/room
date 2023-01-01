@@ -6,10 +6,20 @@
     <title>菜鸟教程(runoob.com)</title>
 
     <script type="text/javascript">
+        let prodUrl = "wss://test.umcoder.com"
+        let testUrl = "ws://127.0.0.1:8999"
         // 打开一个 web socket
-        var ws = new WebSocket("ws://127.0.0.1:8999/room/abcd11");
+        var ws = websocketfactory.create({
+            url: testUrl + "/room/abcd11",
+            header: {
+                'content-type': 'application/json',
+                'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJFbWFpbCI6ImRlbW9uMTIzQHFxLmNvbSIsIkZpcnN0TmFtZSI6ImRlbW9uMTIzIiwiVWlkIjoiNjNiMTQ5Zjc4ZGY2YzZiOTk5YmJhNzkxIiwiVG9rZW5UeXBlIjoiYWNjZXNzVG9rZW4iLCJleHAiOjE2NzI2ODMxOTF9.W0gOp4Xbe2hFN0FZY9tLipqUV_9kP_Msdmcxl6LZKRI',
+            },
+            protocols: ['protocol']
+
+        })
         function openWs() {
-            ws = new WebSocket("ws://127.0.0.1:8999/room/abcd11");
+            ws = new WebSocket(testUrl + "/room/abcd11");
             ws.onopen = function () {
                 // Web Socket 已连接上，使用 send() 方法发送数据
                 var data = {

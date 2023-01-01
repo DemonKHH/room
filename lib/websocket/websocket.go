@@ -4,15 +4,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-	"net/http"
-	"room/logger"
-	serviceRoom "room/service/room"
 	"sync"
 	"time"
+	modelUser "wmt/internal/model/user"
+	"wmt/logger"
+	serviceRoom "wmt/service/room"
 
-	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
-	uuid "github.com/satori/go.uuid"
 )
 
 // Manager 所有 websocket 信息
@@ -28,9 +26,10 @@ type Manager struct {
 
 // Client 单个 websocket 信息
 type Client struct {
-	clientId, Group, Path string
-	Socket                *websocket.Conn
-	Message               chan []byte
+	ClientId, Group string
+	User            modelUser.User
+	Socket          *websocket.Conn
+	Message         chan []byte
 }
 
 // messageData 单个发送数据信息
@@ -54,9 +53,9 @@ type BroadCastMessageData struct {
 func (c *Client) Read() {
 	defer func() {
 		WebsocketManager.UnRegister <- c
-		log.Printf("client [%s] disconnect", c.clientId)
+		log.Printf("client [%s] disconnect", *c.User.FirstName)
 		if err := c.Socket.Close(); err != nil {
-			log.Printf("client [%s] disconnect err: %s", c.clientId, err)
+			log.Printf("client [%s] disconnect err: %s", c.ClientId, err)
 		}
 	}()
 
@@ -65,12 +64,12 @@ func (c *Client) Read() {
 		if err != nil || messageType == websocket.CloseMessage {
 			break
 		}
-		log.Printf("client [%s] receive message: %s", c.clientId, string(message))
+		log.Printf("client [%s] receive message: %s", *c.User.FirstName, string(message))
 		// 处理拿到的消息
 		err = handleMessage(c, message)
 		if err != nil {
-			// log.Printf("client [%s] writemessage err: %s", c.clientId, err)
-			log.Printf("client [%s] writemessage err: %s", c.clientId, err)
+			// log.Printf("client [%s] writemessage err: %s", c.ClientId, err)
+			log.Printf("client [%s] writemessage err: %s", *c.User.FirstName, err)
 		}
 		// c.Message <- message
 	}
@@ -79,9 +78,9 @@ func (c *Client) Read() {
 // 写信息，从 channel 变量 Send 中读取数据写入 websocket 连接
 func (c *Client) Write() {
 	defer func() {
-		log.Printf("client [%s] disconnect", c.clientId)
+		log.Printf("client [%s] disconnect", *c.User.FirstName)
 		if err := c.Socket.Close(); err != nil {
-			log.Printf("client [%s] disconnect err: %s", c.clientId, err)
+			log.Printf("client [%s] disconnect err: %s", *c.User.FirstName, err)
 		}
 	}()
 
@@ -92,7 +91,7 @@ func (c *Client) Write() {
 				_ = c.Socket.WriteMessage(websocket.CloseMessage, []byte("websocker error"))
 				return
 			}
-			log.Printf("client [%s] send message: %s ", c.clientId, string(message))
+			log.Printf("client [%s] send message: %s ", *c.User.FirstName, string(message))
 			c.Socket.WriteJSON(string(message))
 		}
 	}
@@ -105,41 +104,36 @@ func (manager *Manager) Start() {
 		select {
 		// 注册
 		case client := <-manager.Register:
-			log.Printf("client [%s] connect", client.clientId)
-			log.Printf("register client [%s] to group [%s]", client.clientId, client.Group)
+			log.Printf("client [%s] connect", *client.User.FirstName)
+			log.Printf("register client [%s] to group [%s]", client.User.FirstName, client.Group)
 			manager.Lock.Lock()
 			if manager.Group[client.Group] == nil {
 				manager.Group[client.Group] = make(map[string]*Client)
 				manager.groupCount += 1
 			}
-			manager.Group[client.Group][client.clientId] = client
+			manager.Group[client.Group][client.ClientId] = client
 			manager.clientCount += 1
 			manager.Lock.Unlock()
 			var enterMsg = struct {
-				Type       string `json:"type"`
-				ClientId   string `json:"clientId"`
-				GroupCount int    `json:"groupCount"`
-			}{Type: "enter", ClientId: client.clientId, GroupCount: len(manager.Group[client.Group])}
+				Type       string         `json:"type"`
+				User       modelUser.User `json:"user"`
+				GroupCount int            `json:"groupCount"`
+			}{Type: "enter", User: client.User, GroupCount: len(manager.Group[client.Group])}
 			enterMsgBytes, _ := json.Marshal(enterMsg)
 			// 加入房间
-			serviceRoom.EnterRoom(client.Group, client.clientId)
-			// manager.SendGroup(client.Group, enterMsgBytes)
-			// for _, conn := range manager.Group[client.Group] {
-			// 	conn.Message <- enterMsgBytes
-			// }
+			serviceRoom.EnterRoom(client.Group, client.User.UserId)
 			manager.SendGroup(client.Group, enterMsgBytes)
 			log.Printf("client count: %d", WebsocketManager.clientCount)
 		// 注销
 		case client := <-manager.UnRegister:
-			log.Printf("unregister client [%s] from group [%s]", client.clientId, client.Group)
+			log.Printf("unregister client [%s] from group [%s]", client.ClientId, client.Group)
 			manager.Lock.Lock()
 			if _, ok := manager.Group[client.Group]; ok {
-				if _, ok := manager.Group[client.Group][client.clientId]; ok {
+				if _, ok := manager.Group[client.Group][client.ClientId]; ok {
 					close(client.Message)
-					delete(manager.Group[client.Group], client.clientId)
+					delete(manager.Group[client.Group], client.ClientId)
 					manager.clientCount -= 1
 					if len(manager.Group[client.Group]) == 0 {
-						//log.Printf("delete empty group [%s]", client.Group)
 						delete(manager.Group, client.Group)
 						manager.groupCount -= 1
 					}
@@ -147,45 +141,29 @@ func (manager *Manager) Start() {
 			}
 			manager.Lock.Unlock()
 			var leaveMsg = struct {
-				Type       string `json:"type"`
-				ClientId   string `json:"clientId"`
-				GroupCount int    `json:"groupCount"`
-			}{Type: "leave", ClientId: client.clientId, GroupCount: len(manager.Group[client.Group])}
+				Type       string         `json:"type"`
+				User       modelUser.User `json:"user"`
+				GroupCount int            `json:"groupCount"`
+			}{Type: "leave", User: client.User, GroupCount: len(manager.Group[client.Group])}
 			leaveMsgBytes, _ := json.Marshal(leaveMsg)
-			// manager.SendGroup(client.Group, leaveMsgBytes)
 			manager.SendGroup(client.Group, leaveMsgBytes)
 			log.Printf("client count: %d", WebsocketManager.clientCount)
 			// 从房间移出用户
-			serviceRoom.LeaveRoom(client.Group, client.clientId)
+			serviceRoom.LeaveRoom(client.Group, client.User.UserId)
 			// 房间无用户则解散房间
-			if len(manager.Group[client.Group]) == 0 {
-				serviceRoom.DeleteRoom(client.Group)
-			}
-			// for _, conn := range manager.Group[client.Group] {
-			// 	if conn.clientId != client.clientId {
-			// 		conn.Message <- leaveMsgBytes
-			// 	}
+			// if len(manager.Group[client.Group]) == 0 {
+			// 	serviceRoom.DeleteRoom(client.Group)
 			// }
-			// 发送广播数据到某个组的 channel 变量 Send 中
-			//case data := <-manager.boardCast:
-			//	if groupMap, ok := manager.wsGroup[data.GroupId]; ok {
-			//		for _, conn := range groupMap {
-			//			conn.Send <- data.Data
-			//		}
-			//	}
 		}
 	}
 }
 
 // 处理单个 client 发送数据
 func (manager *Manager) SendService() {
-	for {
-		select {
-		case data := <-manager.Message:
-			if groupMap, ok := manager.Group[data.Group]; ok {
-				if conn, ok := groupMap[data.Id]; ok {
-					conn.Message <- data.Message
-				}
+	for data := range manager.Message {
+		if groupMap, ok := manager.Group[data.Group]; ok {
+			if conn, ok := groupMap[data.Id]; ok {
+				conn.Message <- data.Message
 			}
 		}
 	}
@@ -193,15 +171,10 @@ func (manager *Manager) SendService() {
 
 // 处理 group 广播数据
 func (manager *Manager) SendGroupService() {
-	for {
-		log.Printf("send group service")
-		select {
-		// 发送广播数据到某个组的 channel 变量 Send 中
-		case data := <-manager.GroupMessage:
-			if groupMap, ok := manager.Group[data.Group]; ok {
-				for _, conn := range groupMap {
-					conn.Message <- data.Message
-				}
+	for data := range manager.GroupMessage {
+		if groupMap, ok := manager.Group[data.Group]; ok {
+			for _, conn := range groupMap {
+				conn.Message <- data.Message
 			}
 		}
 	}
@@ -209,13 +182,10 @@ func (manager *Manager) SendGroupService() {
 
 // 处理广播数据
 func (manager *Manager) SendAllService() {
-	for {
-		select {
-		case data := <-manager.BroadCastMessage:
-			for _, v := range manager.Group {
-				for _, conn := range v {
-					conn.Message <- data.Message
-				}
+	for data := range manager.BroadCastMessage {
+		for _, v := range manager.Group {
+			for _, conn := range v {
+				conn.Message <- data.Message
 			}
 		}
 	}
@@ -294,41 +264,12 @@ var WebsocketManager = Manager{
 	clientCount:      0,
 }
 
-// gin 处理 websocket handler
-func (manager *Manager) WsClient(ctx *gin.Context) {
-	upGrader := websocket.Upgrader{
-		// cross origin domain
-		CheckOrigin: func(r *http.Request) bool {
-			return true
-		},
-		// 处理 Sec-WebSocket-Protocol Header
-		Subprotocols: []string{ctx.GetHeader("Sec-WebSocket-Protocol")},
-	}
-
-	conn, err := upGrader.Upgrade(ctx.Writer, ctx.Request, nil)
-	if err != nil {
-		log.Printf("websocket connect error: %s", ctx.Param("channel"))
-		return
-	}
-	client := &Client{
-		clientId: uuid.NewV4().String(),
-		Group:    ctx.Param("channel"),
-		Socket:   conn,
-		Message:  make(chan []byte, 100),
-	}
-	client.Path = ctx.Param("channel")
-	logger.Debuglog.Printf("channel %v", client.Path)
-	manager.RegisterClient(client)
-	go client.Read()
-	go client.Write()
-}
-
 // 处理收到的数据
 func handleMessage(c *Client, message []byte) error {
 	log.Printf("handleMessage %v", string(message))
 	if groupMap, ok := WebsocketManager.Group[c.Group]; ok {
 		for _, conn := range groupMap {
-			if c.clientId != conn.clientId {
+			if c.ClientId != conn.ClientId {
 				conn.Message <- message
 			}
 		}
@@ -339,15 +280,15 @@ func handleMessage(c *Client, message []byte) error {
 // 测试组广播
 func TestSendGroup() {
 	for {
-		time.Sleep(time.Second * 20)
-		WebsocketManager.SendGroup("leffss", []byte("SendGroup message ----"+time.Now().Format("2006-01-02 15:04:05")))
+		time.Sleep(time.Second * 2)
+		WebsocketManager.SendGroup("abcd11", []byte("SendGroup message ----"+time.Now().Format("2006-01-02 15:04:05")))
 	}
 }
 
 // 测试广播
 func TestSendAll() {
 	for {
-		time.Sleep(time.Second * 25)
+		time.Sleep(time.Second * 5)
 		WebsocketManager.SendAll([]byte("SendAll message ----" + time.Now().Format("2006-01-02 15:04:05")))
 		fmt.Println(WebsocketManager.Info())
 	}
