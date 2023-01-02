@@ -26,7 +26,7 @@ func GetRooms(context *gin.Context) {
 	log.Printf("rooms: %v", rooms)
 	context.JSON(http.StatusOK, response.ResponseMsg{
 		Code: 0,
-		Msg:  "get successfully",
+		Msg:  "获取房间信息成功",
 		Data: rooms,
 	})
 }

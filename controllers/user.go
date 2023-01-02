@@ -20,7 +20,8 @@ var validate = validator.New()
 
 func GetUser() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		userId := c.Param("userId")
+		// userId := c.Param("userId")
+		userId := c.GetString("userId")
 		if err := helpers.MatchUserTypeToUid(c, userId); err != nil {
 			// c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			c.JSON(http.StatusOK, response.FailMsg(
