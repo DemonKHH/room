@@ -110,10 +110,19 @@ func CreateRoom(context *gin.Context) {
 
 // // 离开房间
 func LeaveRoom(context *gin.Context) {
-	roomId := context.Query("roomId")
+	var room modelRoom.Room
+	err := context.ShouldBindJSON(&room)
+	if err != nil {
+		context.JSON(http.StatusOK, response.ResponseMsg{
+			Code: 1,
+			Msg:  "请求参数错误",
+			Data: err.Error(),
+		})
+		return
+	}
 	userId := context.GetString("userId")
-	log.Printf("leaveRoom roomId %v \n userId %v\n", roomId, userId)
-	err := serviceRoom.LeaveRoom(roomId, userId)
+	log.Printf("leaveRoom roomId %v \n userId %v\n", room.RoomId, userId)
+	err = serviceRoom.LeaveRoom(room.RoomId, userId)
 	if err != nil {
 		log.Printf("离开房间发生错误: %v", err)
 		context.JSON(http.StatusOK, response.ResponseMsg{
