@@ -13,6 +13,7 @@ import (
 
 	modelUser "wmt/internal/model/user"
 	response "wmt/pkg/common/response"
+	"wmt/pkg/common/util"
 
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/bson"
@@ -98,7 +99,7 @@ func Signup() gin.HandlerFunc {
 		accessToken, refreshToken, _ := helpers.GenerateAllToken(*user.Email, *user.FirstName, user.UserId)
 		user.AccessToken = &accessToken
 		user.RefreshToken = &refreshToken
-		avator := "https://img.xjh.me/random_img.php"
+		avator := util.GetRandomAvator()
 		user.Avator = &avator
 
 		_, insertErr := userCollection.InsertOne(ctx, user)
