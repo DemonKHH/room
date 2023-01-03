@@ -74,7 +74,7 @@ func EnterRoom(roomId string, userId string) error {
 		log.Printf("get room info error: %v", err)
 		return err
 	}
-	update := bson.M{"$push": bson.M{"members": bson.M{
+	update := bson.M{"$addToSet": bson.M{"members": bson.M{
 		"userid":   user.UserId,
 		"username": user.FirstName,
 		"avator":   user.Avator,
