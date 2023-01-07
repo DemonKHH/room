@@ -30,3 +30,12 @@ func FailCodeMsg(code int, msg string) *ResponseMsg {
 	}
 	return msgObj
 }
+
+// 用户信息过期
+func FailAuthMsg(msg string) *ResponseMsg {
+	msgObj := &ResponseMsg{
+		Code: 410,
+		Msg:  msg,
+	}
+	return msgObj
+}

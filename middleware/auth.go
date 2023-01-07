@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"wmt/helpers"
+	"wmt/pkg/common/response"
 
 	"github.com/gin-gonic/gin"
 )
@@ -20,13 +21,13 @@ func Authenticate() gin.HandlerFunc {
 			splitToken := strings.Split(reqToken, "Bearer ")
 			clientToken = splitToken[1]
 		} else {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "invalid authorization token"})
+			c.JSON(http.StatusOK, response.FailAuthMsg("invalid authorization token"))
 			c.Abort()
 			return
 		}
 
 		if clientToken == "" {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "no Authorization header provided"})
+			c.JSON(http.StatusOK, response.FailAuthMsg("no Authorization header provided"))
 			c.Abort()
 			return
 		}
@@ -34,7 +35,7 @@ func Authenticate() gin.HandlerFunc {
 		claims, err := helpers.ValidateToken(clientToken)
 
 		if err != "" {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err})
+			c.JSON(http.StatusOK, response.FailAuthMsg(err))
 			c.Abort()
 			return
 		}
