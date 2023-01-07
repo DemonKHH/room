@@ -108,6 +108,36 @@ func CreateRoom(context *gin.Context) {
 	})
 }
 
+// 删除房间
+func DeleteRoom(context *gin.Context) {
+	var room modelRoom.Room
+	err := context.ShouldBindJSON(&room)
+	if err != nil {
+		context.JSON(http.StatusOK, response.ResponseMsg{
+			Code: 1,
+			Msg:  "请求参数错误",
+			Data: err.Error(),
+		})
+		return
+	}
+	userId := context.GetString("userId")
+	log.Printf("deleteRoom roomId %v \n userId %v\n", room.RoomId, userId)
+	err = serviceRoom.DeleteRoom(room.RoomId, userId)
+	if err != nil {
+		log.Printf("解散房间发生错误: %v", err)
+		context.JSON(http.StatusOK, response.ResponseMsg{
+			Code: 1,
+			Msg:  err.Error(),
+			Data: []string{},
+		})
+		return
+	}
+	context.JSON(http.StatusOK, response.ResponseMsg{
+		Code: 0,
+		Msg:  "已解散房间",
+	})
+}
+
 // // 离开房间
 func LeaveRoom(context *gin.Context) {
 	var room modelRoom.Room

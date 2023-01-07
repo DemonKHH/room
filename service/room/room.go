@@ -36,14 +36,16 @@ func GetRoomInfoByRoomId(roomId string) (room modelRoom.Room, err error) {
 	return room, err
 }
 
-func DeleteRoom(roomId string) {
+func DeleteRoom(roomId string, userId string) error {
+	var err error
 	client := db.GetMongoClient()
-	err := db.Delete(client, "rooms", bson.M{
+	err = db.Delete(client, "rooms", bson.M{
 		"roomid": roomId,
 	})
 	if err != nil {
-		print("创建房间失败 %v", err)
+		print("删除房间失败 %v", err)
 	}
+	return err
 }
 
 func CreateRoom(roomId string, roomName string, videoUrl string) error {
